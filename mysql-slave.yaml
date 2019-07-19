@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-slave
+  labels:
+    app: mysql-slave
+spec:
+  type: NodePort
+  ports:
+  - name: mysql-slave
+    port: 3306
+  selector:
+    app: mysql-slave
+	
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: mysql-slave
+  labels:
+    name: mysql-master
+spec:
+  serviceName: mysql-slave
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mysql-slave
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: mysql-slave
+        image: k8sz/mysql-slave:latest   
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "zb@123.com"
+        - name: MYSQL_REPLICATION_USER
+          value: "sync"
+        - name: MYSQL_REPLICATION_PASSWORD
+          value: "zb@123.com"
+        volumeMounts:
+          - name: mysql-slave-v
+            mountPath: /var/lib/mysql
+      nodeSelector:
+        nodetype: mysql-slave
+      volumes:
+      - name: mysql-slave-v
+        hostPath:
+          path: /data/mysql-slave/data
